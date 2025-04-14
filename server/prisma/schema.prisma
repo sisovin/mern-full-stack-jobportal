@@ -7,19 +7,91 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Notification {
-  id        String   @id @default(uuid())
-  title     String
-  message   String
-  type      NotificationType
-  read      Boolean  @default(false)
-  userId    String
+model User {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  name           String?
+  email          String    @unique
+  passwordHash   String
+  profileImage   String?
+  bio            String?
+  isActive       Boolean   @default(true)
+  isDeleted      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  roleId         String    @db.ObjectId
+  role           Role      @relation(fields: [roleId], references: [id])
+
+  jobs           Job[]     @relation("PostedJobs")
+  notifications  Notification[]
+
+  @@map("users")
+}
+
+model Role {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique // "USER", "ADMIN", or future roles like "MODERATOR"
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  users     User[]
+  
+  @@map("roles")
+}
+
+model Job {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  title          String
+  description    String
+  companyName    String
+  location       String?
+  salaryRange    String?
+  category       String
+
+  jobTypeId      String    @db.ObjectId
+  jobType        JobType   @relation(fields: [jobTypeId], references: [id])
+
+  postedByUser   User      @relation("PostedJobs", fields: [postedByUserId], references: [id])
+  postedByUserId String    @db.ObjectId
+
+  isDeleted      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("jobs")
+}
+
+model JobType {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique // "FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"
+  createdAt DateTime @default(now())
+
+  jobs      Job[]
+
+  @@map("job_types")
+}
+
+model Notification {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  message   String
+  isRead    Boolean   @default(false)
+
+  typeId    String    @db.ObjectId
+  type      NotificationType   @relation(fields: [typeId], references: [id])
+
+  userId    String    @db.ObjectId
+  user      User      @relation(fields: [userId], references: [id])
+
+  createdAt DateTime  @default(now())
+
+  @@map("notifications")
 }
 
 model NotificationType {
-  id    String @id @default(uuid())
-  name  String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique // "INFO", "WARNING", "SUCCESS", "ERROR"
+  createdAt DateTime @default(now())
+
   notifications Notification[]
+
+  @@map("notification_types")
 }
